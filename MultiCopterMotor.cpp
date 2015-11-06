@@ -37,44 +37,15 @@ void MultiCopterMotor::update(int16_t compX, int16_t compY, int16_t compYaw, int
 	// All arguments are expected to have units of integer microseconds
 	
 	int16_t pulseLength;
-	uint8_t pwm_new;
-	uint8_t change;
+	uint8_t pwm;
 	
 	pulseLength  = mul(compX << 1, motorX);	// X component -- S15.0 << 1 * S0.15 = S15.16 : mul returns the top S15
 	pulseLength += mul(compY << 1, motorY);	// Y component
 	pulseLength += compYaw * spinDirection;	// Yaw component
-	pulseLength += throttle;						// throttle component
+	pulseLength += throttle;				// throttle component
 	
-	pwm_new = constrain(pulseLength, MCM_MOTOR_PULSE_MIN, MCM_MOTOR_PULSE_MAX) >> 3;	// constrain and divide by 8 to scale to 8bit PWM range
+	pwm = constrain(pulseLength, MCM_MOTOR_PULSE_MIN, MCM_MOTOR_PULSE_MAX) >> 3;	// constrain and divide by 8 to scale to 8bit PWM range
 
-	// avoid large instantaneous changes
-	if(pwm_new > pwm)
-	{
-		change = pwm_new - pwm;
-		
-		if(change > 8)
-		{
-			pwm += 8;
-		}
-		else
-		{
-			pwm += change;
-		}	
-	}
-	else
-	{
-		change = pwm - pwm_new;
-		
-		if(change > 8)
-		{
-			pwm -= 8;
-		}
-		else
-		{
-			pwm -= change;
-		}
-	}
-	
 	analogWrite(motorPin, pwm);
 }
 
