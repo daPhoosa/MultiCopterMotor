@@ -12,7 +12,7 @@ MultiCopterMotor::MultiCopterMotor(float mX, float mY, int16_t _spinDirection, i
 {
 	motorPin = _motorPin;
 	
-	int16_t spinDirection = _spinDirection;
+	spinDirection = _spinDirection;
 	
 	if(abs(mX) + abs(mY) > 0.01f)
 	{
@@ -27,8 +27,7 @@ MultiCopterMotor::MultiCopterMotor(float mX, float mY, int16_t _spinDirection, i
 		motorY = 0;	
 	}
 	
-	pwm = MCM_MOTOR_PULSE_MIN >> 3;
-	
+	analogWrite(motorPin, MCM_MOTOR_PULSE_MIN >> 3);
 }
 
 
@@ -41,14 +40,27 @@ void MultiCopterMotor::update(int16_t compX, int16_t compY, int16_t compYaw, int
 	
 	pulseLength  = mul(compX << 1, motorX);	// X component -- S15.0 << 1 * S0.15 = S15.16 : mul returns the top S15
 	pulseLength += mul(compY << 1, motorY);	// Y component
-	pulseLength += compYaw * spinDirection;	// Yaw component
+	
+	if(spinDirection > 0)  // Yaw component
+	{
+		pulseLength += compYaw;	// positive spin
+	}
+	else
+	{
+		pulseLength -= compYaw; // negative spin
+	}
+	
 	pulseLength += throttle;				// throttle component
 	
-	pwm = constrain(pulseLength, MCM_MOTOR_PULSE_MIN, MCM_MOTOR_PULSE_MAX) >> 3;	// constrain and divide by 8 to scale to 8bit PWM range
+	pwm = constrain(pulseLength, MCM_MOTOR_PULSE_IDLE, MCM_MOTOR_PULSE_MAX) >> 3;	// constrain and divide by 8 to scale to 8bit PWM range
 
-	analogWrite(motorPin, pwm);
+	analogWrite(motorPin, pwm);		// output to motor
 }
 
+void MultiCopterMotor::stop()
+{
+	analogWrite(motorPin, MCM_MOTOR_PULSE_MIN >> 3);
+}
 
 // **** Special Integer Multiplication ****
 // signed 16 * signed 16 >> H16
