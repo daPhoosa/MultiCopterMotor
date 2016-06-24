@@ -28,6 +28,8 @@
 
 			int16_t mul(int16_t a, int16_t b); // special multiplication function
 			
+			void PWM_write(uint8_t pin, int val);
+			
 			int16_t motorPin;
 			int16_t spinDirection;
 			int16_t motorX, motorY;	

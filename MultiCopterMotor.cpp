@@ -27,7 +27,7 @@ MultiCopterMotor::MultiCopterMotor(float mX, float mY, int16_t _spinDirection, i
 		motorY = 0;	
 	}
 	
-	analogWrite(motorPin, MCM_MOTOR_PULSE_MIN >> 3);
+	analogWrite(motorPin, MCM_MOTOR_PULSE_MIN >> 3);  // use analogWrite to set pin and connect to pwm
 }
 
 
@@ -36,9 +36,10 @@ void MultiCopterMotor::update(int16_t compX, int16_t compY, int16_t compYaw, int
 	// All arguments are expected to have units of integer microseconds
 	
 	int16_t pulseLength;
-	uint8_t pwm;
 	
-	pulseLength  = mul(compX << 1, motorX);	// X component -- S15.0 << 1 * S0.15 = S15.16 : mul returns the top S15
+	pulseLength  = throttle;	// throttle component
+	
+	pulseLength += mul(compX << 1, motorX);	// X component -- S15.0 << 1 * S0.15 = S15.16 : mul returns the top S15
 	pulseLength += mul(compY << 1, motorY);	// Y component
 	
 	if(spinDirection > 0)  // Yaw component
@@ -49,17 +50,13 @@ void MultiCopterMotor::update(int16_t compX, int16_t compY, int16_t compYaw, int
 	{
 		pulseLength -= compYaw; // negative spin
 	}
-	
-	pulseLength += throttle;				// throttle component
-	
-	pwm = constrain(pulseLength, MCM_MOTOR_PULSE_IDLE, MCM_MOTOR_PULSE_MAX) >> 3;	// constrain and divide by 8 to scale to 8bit PWM range
 
-	analogWrite(motorPin, pwm);		// output to motor
+	PWM_write(motorPin, constrain(pulseLength, MCM_MOTOR_PULSE_IDLE, MCM_MOTOR_PULSE_MAX) >> 3);		// constrain and divide by 8 to scale to 8bit PWM range and output to motor
 }
 
 void MultiCopterMotor::stop()
 {
-	analogWrite(motorPin, MCM_MOTOR_PULSE_MIN >> 3);
+	PWM_write(motorPin, MCM_MOTOR_PULSE_MIN >> 3);
 }
 
 // **** Special Integer Multiplication ****
@@ -97,4 +94,132 @@ int16_t  __attribute__ ((noinline)) MultiCopterMotor::mul(int16_t a, int16_t b) 
 	int16_t r;
 	MultiS16X16toH16(r, a, b);
 	return r;
+}
+
+
+void MultiCopterMotor::PWM_write(uint8_t pin, int val) // Borrowed from Arduino wiring_analog.c  -- remove setting pin mode to save time
+{
+
+	switch(digitalPinToTimer(pin))
+	{
+		// XXX fix needed for atmega8
+		#if defined(TCCR0) && defined(COM00) && !defined(__AVR_ATmega8__)
+		case TIMER0A:
+			OCR0 = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR0A) && defined(COM0A1)
+		case TIMER0A:
+			OCR0A = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR0A) && defined(COM0B1)
+		case TIMER0B:
+			OCR0B = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR1A) && defined(COM1A1)
+		case TIMER1A:
+			OCR1A = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR1A) && defined(COM1B1)
+		case TIMER1B:
+			OCR1B = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR1A) && defined(COM1C1)
+		case TIMER1C:
+			OCR1C = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR2) && defined(COM21)
+		case TIMER2:
+			OCR2 = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR2A) && defined(COM2A1)
+		case TIMER2A:
+			OCR2A = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR2A) && defined(COM2B1)
+		case TIMER2B:
+			OCR2B = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR3A) && defined(COM3A1)
+		case TIMER3A:
+			OCR3A = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR3A) && defined(COM3B1)
+		case TIMER3B:
+			OCR3B = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR3A) && defined(COM3C1)
+		case TIMER3C:
+			OCR3C = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR4A)
+		case TIMER4A:
+			OCR4A = val;	// set pwm duty
+			break;
+		#endif
+		
+		#if defined(TCCR4A) && defined(COM4B1)
+		case TIMER4B:
+			OCR4B = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR4A) && defined(COM4C1)
+		case TIMER4C:
+			OCR4C = val; // set pwm duty
+			break;
+		#endif
+			
+		#if defined(TCCR4C) && defined(COM4D1)
+		case TIMER4D:				
+			OCR4D = val;	// set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR5A) && defined(COM5A1)
+		case TIMER5A:
+			OCR5A = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR5A) && defined(COM5B1)
+		case TIMER5B:
+			OCR5B = val; // set pwm duty
+			break;
+		#endif
+
+		#if defined(TCCR5A) && defined(COM5C1)
+		case TIMER5C:
+			OCR5C = val; // set pwm duty
+			break;
+		#endif
+
+		case NOT_ON_TIMER:
+		default:
+			digitalWrite(pin, LOW);
+
+	}
 }
